@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -15,13 +16,13 @@ type CorpusItem struct {
 }
 
 type CorpusNode struct {
-	Endpoint *CorpusItem
+	Endpoint []CorpusItem
 	Next     map[rune]*CorpusNode
 }
 
-func (c *CorpusNode) Add(keyword string, item *CorpusItem) {
+func (c *CorpusNode) Add(keyword string, item CorpusItem) {
 	if len(keyword) == 0 {
-		c.Endpoint = item
+		c.Endpoint = append(c.Endpoint, item)
 		return
 	}
 	r, width := utf8.DecodeRuneInString(keyword)
@@ -48,9 +49,10 @@ func (c *CorpusNode) QueryPrefix(prefix string) *CorpusItem {
 		if !ok {
 			break
 		}
-		if curNode.Endpoint != nil {
-			if result == nil || result.InversePriority > curNode.Endpoint.InversePriority {
-				result = curNode.Endpoint
+		if len(curNode.Endpoint) != 0 {
+			curEndpoint := curNode.Endpoint[time.Now().UnixNano()%int64(len(curNode.Endpoint))]
+			if result == nil || result.InversePriority > curEndpoint.InversePriority {
+				result = &curEndpoint
 				if result.InversePriority == 0 {
 					break
 				}
@@ -94,7 +96,7 @@ func (c *CorpusNode) Load(reader io.Reader) error {
 			continue
 		}
 		if keyword != "" {
-			c.Add(keyword, &CorpusItem{line, inversePriority})
+			c.Add(keyword, CorpusItem{line, inversePriority})
 			keyword = ""
 			inversePriority = 0
 			continue
