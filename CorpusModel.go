@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -26,6 +27,7 @@ func (c *CorpusNode) Add(keyword string, item CorpusItem) {
 		return
 	}
 	r, width := utf8.DecodeRuneInString(keyword)
+	r = unicode.ToLower(r)
 	if c.Next == nil {
 		c.Next = make(map[rune]*CorpusNode)
 	}
@@ -37,7 +39,7 @@ func (c *CorpusNode) Add(keyword string, item CorpusItem) {
 	v.Add(keyword[width:], item)
 }
 
-func (c *CorpusNode) QueryPrefix(prefix string) *CorpusItem {
+func (c *CorpusNode) queryPrefix(prefix string) *CorpusItem {
 	var width int
 	var single rune
 	curNode := c
@@ -65,9 +67,10 @@ func (c *CorpusNode) QueryPrefix(prefix string) *CorpusItem {
 func (c *CorpusNode) Query(context string) *CorpusItem {
 	var width int
 	var result *CorpusItem = nil
-	for str := context; len(str) > 0; str = str[width:] {
+	str := strings.Map(unicode.ToLower, context)
+	for ; len(str) > 0; str = str[width:] {
 		_, width = utf8.DecodeRuneInString(str)
-		endpoint := c.QueryPrefix(str)
+		endpoint := c.queryPrefix(str)
 		if endpoint != nil {
 			if result == nil || result.InversePriority > endpoint.InversePriority {
 				result = endpoint
